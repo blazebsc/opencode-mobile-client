@@ -158,7 +158,8 @@ In Xcode, build and run on a device/simulator.
 ## GitHub Actions: Android APK
 
 - Every push to `main`, every PR targeting `main`, and every manual run builds a debug APK and uploads it as an artifact.
-- Pushing a tag that starts with `v` (for example `v1.2.3`) also builds a signed release APK and publishes it to the GitHub Release for that tag.
+- Non-PR runs also build a signed release APK artifact when all Android signing secrets are configured.
+- Pushing a tag that starts with `v` (for example `v1.2.3`) publishes that signed release APK to the GitHub Release for the tag.
 
 Release workflow secrets required:
 
