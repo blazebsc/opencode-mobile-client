@@ -21,17 +21,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -42,6 +31,7 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: latest
+          packages: platform-tools
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
 
@@ -58,6 +48,9 @@ jobs:
             https://github.com/termux/termux-packages/releases/latest/download/bootstrap-aarch64.zip
           echo "Bootstrap SHA256:"
           sha256sum app/src/main/assets/bootstrap-aarch64.zip
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
