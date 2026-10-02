@@ -7,6 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Project uses pnpm — do not reintroduce npm's lockfile
+package-lock.json
+
 node_modules
 dist
 dist-ssr
@@ -27,4 +30,13 @@ assets/
 *.sw?
 
 # Native
-android/keystore.properties
+legacy/android/keystore.properties
+
+# Gradle (main project is the native Android app at repo root)
+.gradle/
+build/
+local.properties
+.kotlin/
+*.iml
+app/build/
+app/src/main/assets/bootstrap-aarch64.zip

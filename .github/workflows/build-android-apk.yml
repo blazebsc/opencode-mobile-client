@@ -1,24 +1,36 @@
-name: Build Android APK
+name: Build Legacy Android APK
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'legacy/**'
+      - '.github/workflows/build-android-apk.yml'
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Release APK
+    name: Build Legacy Release APK
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: legacy
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'pnpm'
+          cache-dependency-path: legacy/pnpm-lock.yaml
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -40,16 +52,16 @@ jobs:
           yes | sdkmanager "platform-tools"
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build production bundle
-        run: npm run build
+        run: pnpm run build
 
       - name: Add Android platform
-        run: npx cap add android || npx cap sync android
+        run: pnpm exec cap add android || pnpm exec cap sync android
 
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: pnpm exec cap sync android
 
       - name: Download Termux bootstrap (aarch64)
         run: |
@@ -63,14 +75,14 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build debug APK
-        working-directory: android
+        working-directory: legacy/android
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opencode-mobile-client-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: opencode-mobile-client-legacy-apk
+          path: legacy/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
 # ---------------------------------------------------------------

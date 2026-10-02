@@ -1,0 +1,80 @@
+name: Build Native Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - 'gradlew*'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/build-native-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Native Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: latest
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager "platforms;android-35"
+          yes | sdkmanager "build-tools;35.0.0"
+          yes | sdkmanager "platform-tools"
+
+      - name: Download Termux bootstrap (aarch64)
+        run: |
+          mkdir -p app/src/main/assets
+          curl -L -o app/src/main/assets/bootstrap-aarch64.zip \
+            https://github.com/termux/termux-packages/releases/latest/download/bootstrap-aarch64.zip
+          echo "Bootstrap SHA256:"
+          sha256sum app/src/main/assets/bootstrap-aarch64.zip
+
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-mobile-native-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+# ---------------------------------------------------------------
+# After the workflow finishes:
+#   1. Go to Actions -> this run -> Artifacts section
+#   2. Download "opencode-mobile-native-apk"
+#   3. Install: adb install -r app-debug.apk
+# ---------------------------------------------------------------

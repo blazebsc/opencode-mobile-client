@@ -1,269 +1,115 @@
-# OpenCode Mobile &lt;Client&gt; 📱
+# OpenCode Mobile — Native Android (Kotlin + Compose)
 
-💫 A lightweight mobile client that wraps the [OpenCode Web](https://opencode.ai/docs/web/) UI as native Android and iOS apps. Connects to an already-running OpenCode server over LAN or VPN / Tailscale.
+Native Android app (this repo's main project). Same app ID
+(`com.logicedge.opencodemobile`), same server protocol, no WebView:
+the chat UI talks to the OpenCode HTTP API directly.
 
-Chat with your agents from your phone while they and the server run on your computer, with full access to your code and tools 🖥️
+The previous Capacitor/Vue app is preserved in `legacy/`.
 
-🔃 Seamlessly continue sessions started on your computer from your phone, or vice versa
-
----
-
-## Features
-
-- 🌐 Connect to any OpenCode server over HTTP/HTTPS (LAN or VPN /
-            Tailscale when you're away from home🚶)
-- 📋 Multiple server profiles with auto-connect support
-- 🔑 Basic Auth support (matching OpenCode's `OPENCODE_SERVER_PASSWORD`)
-- 🎛️ Pull-down menu for server management while connected. Pull to refresh, tap ⋮ to open menu.
-- ❤️ Automatic health checks with exponential reconnect
-- 🔒 Secure storage for passwords (Keychain/EncryptedSharedPreferences)
-- 🌓 Dark theme with light theme support (`prefers-color-scheme`)
-- ⌨️ Toggleable Enter=newline mode (Enter inserts a newline, Shift+Enter sends the prompt)
-
----
-
-## How to start your OpenCode Server (REQUIRED TO USE THE APP❗)
-
-The app is a client that connects to a opencode web server running on the machine where you have your code and build tools. It needs a running web server to connect to.
-
-### No authentication
+## Build
 
 ```bash
-opencode web --hostname 0.0.0.0 --port 4096
+export ANDROID_HOME=~/Android/Sdk   # or set sdk.dir in local.properties
+./gradlew :app:testDebugUnitTest    # JVM unit tests (no device needed)
+./gradlew :app:assembleDebug        # APK at app/build/outputs/apk/debug/
 ```
 
-### With authentication (recommended)
+Requires JDK 17+, Android SDK with platform 35 + build tools.
 
-```bash
-export OPENCODE_SERVER_PASSWORD="your-secret-password"
-opencode serve --hostname 0.0.0.0 --port 4096
-```
-
-When auth is enabled, the username defaults to `opencode` in the app. Find more options in the [official docs](https://opencode.ai/docs/web/).
-
----
-
-## Troubleshooting
-
-### Cannot connect
-
-- Verify the server is running: `opencode serve --hostname 0.0.0.0 --port 4096`
-- Verify the URL is correct. Try `curl http://your-server:4096/` from another device on the same network.
-- Check that the port is not firewalled.
-- Ensure the server is listening on `0.0.0.0` (not `127.0.0.1`, which would only accept local connections).
-
-### Auth required
-
-- The server returned HTTP 401 and no password is stored in the app.
-- Go to Edit Server and set the password that matches `OPENCODE_SERVER_PASSWORD`.
-
-### Wrong credentials
-
-- The stored username or password does not match the server.
-- Try connecting with the correct credentials via curl first: `curl -u opencode:your-password http://server:4096/`
-
-### Blank iframe
-
-- The health check succeeded but the iframe shows nothing after 8 seconds.
-- The OpenCode Web UI may be sending headers that block embedding (`X-Frame-Options: DENY` or `Content-Security-Policy: frame-ancestors 'none'`).
-- Workaround: Use the "Open in isolated native webview" option from the menu (requires `@capgo/capacitor-inappbrowser`).
-
-### HTTP blocked on Android/iOS
-
-- Android: Ensure `android:networkSecurityConfig` allows cleartext (see Android Setup above).
-- iOS: Ensure `NSAllowsLocalNetworking` is set in `Info.plist` (see iOS Setup above).
-
-### Works in native app but not browser dev mode (CORS)
-
-- This is expected. The web dev server at `localhost:5173` has a different origin than your OpenCode server.
-- Use the native app build, or configure the OpenCode server to allow your dev origin via CORS headers.
-- The `CapacitorHttp` plugin bypasses CORS on native, which is why health checks work in the app.
-
-### Server reachable but embedding blocked
-
-- Some OpenCode deployments may send `X-Frame-Options: DENY` or `Content-Security-Policy: frame-ancestors 'none'`.
-- The app detects this after 8 seconds and offers a "Refresh" button.
-- If the issue persists, use the menu → "Open in isolated native webview" fallback.
-
----
-
-## Contributing
-
-PRs are welcome!
-
-### Prerequisites
-
-- **Node.js** 18+
-- **npm** 9+
-- For native builds:
-  - **Android**: Android Studio, JDK 17, Android SDK 34+
-  - **iOS**: Xcode 15+ (macOS only)
-
-### Development (UI only - for functionality related to the opencode webview you need to test on a native platform, bot Android and iOS are supported)
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` in a browser. The web target is for development and quick UI testing only. CORS may block health checks from the browser — test native builds for full functionality.
-
-### Android
-
-```bash
-npm install
-npm run build
-npx cap add android
-npx cap sync
-npx cap open android
-```
-
-In Android Studio, build and run on a device/emulator.
-
-### iOS
-
-```bash
-npm install
-npm run build
-npx cap add ios
-npx cap sync
-npx cap open ios
-```
-
-In Xcode, build and run on a device/simulator.
-
----
-
-## Commands Reference
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start Vite dev server (web) |
-| `npm run build` | Type-check and build for production |
-| `npm run preview` | Preview production build |
-| `npm test` | Run unit tests (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run lint` | TypeScript type-check only |
-| `npm run cap:sync` | Sync Capacitor native projects |
-| `npm run cap:add:android` | Add Android platform |
-| `npm run cap:add:ios` | Add iOS platform |
-| `npm run cap:open:android` | Open Android project in Android Studio |
-| `npm run cap:open:ios` | Open iOS project in Xcode |
-| `npm run store:verify` | Check store-readiness config files and release scaffolding |
-| `npm run android:play:bundle` | Build a signed Android App Bundle for Play Console (requires signing config) |
-| `npm run android:play:apk` | Build a signed Android release APK (requires signing config) |
-
----
-
-## Project Structure
+## Layout
 
 ```
-src/
-  main.ts                          App entry
-  App.vue                          Root component
-  types.ts                         TypeScript type definitions
-  router/index.ts                  Vue Router config
-  stores/
-    serverStore.ts                 Pinia store for server profiles
-    connectionStore.ts             Pinia store for connection state
-  services/
-    storage/
-      profileStorage.ts            Server profile CRUD via Preferences
-      secureSecretStorage.ts       Password storage via Keychain/EncryptedSP
-      webDevSecretStorage.ts       localStorage fallback for web dev
-      index.ts                     Storage adapter factory
-    opencode/
-      url.ts                       URL normalization, validation, sanitization
-      auth.ts                      Basic Auth header generation
-      health.ts                    Server health check via native HTTP
-    platform/
-      systemBars.ts                Status/navigation bar configuration
-      backButton.ts                Android back button handler
-  components/
-    LandingScreen.vue              App landing page
-    ServerList.vue                 Server profile list
-    ServerProfileForm.vue          Add/edit server form
-    ConnectionShell.vue            Full-screen iframe shell
-    TopPullMenu.vue                Pull-down menu overlay
-    StatusDot.vue                  Status indicator
-    SettingsScreen.vue             App settings
-    ConfirmDialog.vue              Reusable confirmation dialog
-  styles/
-    base.css                       Global styles, buttons, dark/light theme
-    safe-area.css                  Safe-area CSS variables
-  tests/
-    url.test.ts                    URL unit tests
-    auth.test.ts                   Auth unit tests
-    profileStorage.test.ts         Profile storage unit tests
-    connectionState.test.ts        Connection state unit tests
+app/src/main/java/com/logicedge/opencodemobile/
+  MainActivity.kt                  entry point, builds ServerRepository
+  data/
+    ServerModels.kt                ServerProfile, ServerStatus, ConnectionState, HealthResult
+    UrlUtils.kt                    port of src/services/opencode/url.ts
+    Auth.kt                        port of src/services/opencode/auth.ts (Basic header)
+    Health.kt                      status classifier + timeout const (port of health.ts)
+    ApiModels.kt                   SessionInfo, ChatMessage sealed types, MessageParser
+    OpenCodeApi.kt                 OkHttp client: health, sessions, messages, prompt,
+                                   wait/interrupt, permissions, SSE /api/event
+    Permissions.kt                 permission request parser + reply decisions
+    ProfileStore.kt                DataStore prefs, key opencode_server_profiles
+    SecretStore.kt                 EncryptedSharedPreferences, key opencode_pw_<id>
+    ServerRepository.kt            CRUD + single-default + embedded profile +
+                                   parallel check-all (port of the Pinia stores' I/O)
+    DemoMode.kt                    offline demo credentials + keyword responder
+  server/
+    BootstrapInstaller.kt          Termux bootstrap extraction (ported 1:1)
+    OpenCodeServerManager.kt       CLI install, config/auth, serve lifecycle (ported,
+                                   JSON via kotlinx.serialization)
+    OpenCodeForegroundService.kt   foreground service + status notification (ported 1:1,
+                                   now declared in the manifest)
+    LocalServerController.kt       start/stop/status facade (replaces Capacitor plugin)
+  notify/
+    NotificationPrefs.kt           opencode_native_notifications prefs + emit/ignore/ask
+    SessionNotifier.kt             opencode-web-notifications channel, completion/error/
+                                   permission alerts
+  ui/
+    ServerViewModel.kt             profiles state (port of serverStore)
+    ConnectionViewModel.kt         connect / poll(10s) / reconnect(1,2,4,8,15,30s)
+    ChatViewModel.kt               sessions, messages, send, SSE live refresh, wait+poll,
+                                   stop, permission approve/deny, demo, notifications
+    Nav.kt                         routes: landing, servers, new, edit, settings,
+                                   help, connect/:id, chat/:serverId/:sessionId
+    Theme.kt                       Material3 light/dark
+    screens/                       Landing, ServerList, ServerForm, Settings
+                                   (connection + notifications + on-device server),
+                                   Help, Connect, Chat (session menu, permission +
+                                   notification-ask dialogs)
+app/src/test/...                   UrlUtilsTest, Auth/health classifier,
+                                   DemoMode, MessageParser, Permissions,
+                                   NotifyDecision, SSE session-id tests
 ```
 
----
+## API mapping (verified live)
 
-## Security Notes
+Works against **v1 and v2** servers. The version is auto-detected on first
+connect (`GET /api/info` → v2, `GET /global/health` → v1) and stored per
+profile; all paths, envelopes, and payloads adapt. Auth on both is HTTP Basic
+(`opencode` + `OPENCODE_SERVER_PASSWORD`).
 
-### LAN HTTP is acceptable for trusted local networks only
+| App need            | v2 (`/api/…`)                              | v1 (unprefixed)                              |
+|---------------------|--------------------------------------------|----------------------------------------------|
+| Health              | `GET /api/info` (`{"version"}`)            | `GET /global/health` (`{"healthy"}`)         |
+| List/create/delete  | `GET/POST/DELETE /api/session…` (`{data}`) | `GET/POST/DELETE /session…` (raw)            |
+| Messages            | `GET /api/session/{id}/message` (flat)     | `GET /session/{id}/message` (`{info,parts}`) |
+| Send                | `POST …/prompt {"text"}`                   | `POST …/message {"parts":[{"type":"text"}]}` |
+| Completion          | `POST …/experimental/session/{id}/wait`    | re-poll only (no wait endpoint)              |
+| Stop                | `POST …/interrupt`                         | `POST …/abort`                               |
+| Permissions         | list/reply under `…/permission…`           | reply via `…/permissions/{id}` (`response` + `remember`); listing is best-effort |
+| Live events         | `GET /api/event` SSE                       | `GET /global/event` SSE                      |
+| Pairing             | `POST /api/pair` → redeem `/auth/connect/{code}` → token-as-password | n/a (manual URL + password) |
 
-The app allows connecting to HTTP servers because OpenCode servers commonly run on LAN without TLS. HTTP traffic should never traverse the public internet.
+**Pairing (v2):** run `opencode pair` on the server, then in Add Server →
+"Pair with code/link" either **scan the QR code** it prints (camera) or paste
+the link (`http://host:port/auth/connect/<code>`, single-use, 5 min expiry).
+The QR encodes exactly that URL. The redeemed token is saved as the
+password — no typing credentials. Verified live: the token authenticates as
+the Basic password for user `opencode`.
 
-### For remote access, use a VPN or HTTPS reverse proxy
+Message union is discriminated by `type`: `user` (`text` or `payload.text`),
+`assistant` (`content[]` with `text`/`tool` parts, `finish`, `error`),
+`idle`/`system` (mapped to system rows).
 
-- **Recommended**: Tailscale, WireGuard, or OpenVPN to securely extend your LAN
-- **Alternative**: Put OpenCode behind an HTTPS reverse proxy (Caddy, Nginx, Traefik) with proper TLS termination
-- **Public/VPS servers**: use HTTPS. The app may warn on public HTTP, but does not block it unless product policy changes.
+## Intentional gaps vs the Capacitor app
 
-**Do not expose OpenCode directly to the public internet without strong authentication and transport security.**
-
-### Password storage
-
-- **Native (Android/iOS)**: Passwords are stored in platform secure storage — Android EncryptedSharedPreferences and iOS Keychain — via `@aparajita/capacitor-secure-storage`.
-- **Web (development only)**: Passwords fall back to `localStorage` with the prefix `opencode_dev_pw_`. A console warning is shown on each access. This is **insecure** and only suitable for local development.
-- Passwords are never logged, never shown in the UI by default, and never included in error messages.
-- The `sanitizeUrlForDisplay()` helper strips credentials from URLs before display or logging.
-
-### Iframe authentication compromise
-
-When Basic Auth is enabled, the app constructs an iframe URL with embedded credentials (`http://username:password@host:port/`) because browsers do not allow setting custom `Authorization` headers on iframe requests. This credential-in-URL approach is a known limitation:
-
-- The full-credential URL is built only at the moment of iframe `src` assignment and is **never stored**.
-- It is **never logged** or displayed.
-- For production remote access, prefer HTTPS + VPN to avoid passing credentials in URLs.
-
-### Auth-less mode
-
-When authentication is disabled on the server, the iframe loads the plain URL without any credentials.
-
----
-
-## Known Limitations
-
-1. **iframe authentication**: Basic Auth credentials must be passed in the iframe URL (browser security restriction). Credentials are never stored in this form.
-2. **Frame-blocking headers**: Some OpenCode deployments may block iframe embedding. The app detects this and offers a fallback native webview option.
-3. **Web dev CORS**: Health checks in browser dev mode may be blocked by CORS. Native builds use `CapacitorHttp` which bypasses this.
-4. **Single iframe**: Only one OpenCode session at a time. The app shows one server's UI in the full screen.
-5. **No server push notifications**: The app does not receive background push from OpenCode, but web notifications emitted by the connected OpenCode UI are re-emitted as local native notifications while the WebView is open.
-
----
-
-## Store Release Readiness
-
-Store-readiness notes, review-risk flags, and draft listing metadata live in:
-
-- `docs/store-readiness.md`
-- `docs/webview-injection-review.md`
-- `store/`
-
-Before release, run:
-
-```bash
-npm run store:verify
-npm run lint
-npm test
-npm run build
-```
-
----
-
-## License
-
-MIT
+- **Webview shell is gone by design**: the legacy app embedded the OpenCode web
+  UI in a WebView; this app talks to the OpenCode HTTP API directly and renders
+  sessions natively (chat, permissions, notifications). iframe
+  credential-in-URL, frame-blocked detection, the injected JS bridge, the
+  in-app-browser fallback, and the custom pull physics do not apply. Lists use
+  Material3 `PullToRefreshBox`; health auto-polls every 5s on Landing/Servers.
+- **On-device server needs the bootstrap asset**: `BootstrapInstaller`,
+  `OpenCodeServerManager`, and `OpenCodeForegroundService` are ported 1:1 and the
+  service is properly declared (the old manifest never declared it). Like the old
+  app, `bootstrap-aarch64.zip` is downloaded at build time
+  (see `.github/workflows/build-native-apk.yml`) into
+  `app/src/main/assets`. Without it, Settings shows
+  "Bootstrap asset is not bundled" and local start is unavailable.
+- **Profile list self-repairs on launch**: duplicate "Local OpenCode" entries
+  from an old seeding bug are removed automatically, and the first real server
+  is promoted to default when none is set (the landing screen only shows the
+  default server). Rules live in `ProfilePlan` with unit tests.
+- **iOS**: dropped per decision; `legacy/` keeps the Capacitor app (web + iOS).
